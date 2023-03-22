@@ -1,0 +1,29 @@
+"""
+stair problem 
+"""
+
+from typing import List
+NUMBER_STEPS = 5
+STEPS_REMAINING = NUMBER_STEPS
+OPTIONS =[1,2]
+
+def find_best_move(num_steps: int) -> int:
+    modulus = num_steps%3
+    if modulus == 0:
+        # turn player loses
+        return 2
+    elif modulus ==1:
+        return 1
+    elif modulus ==2:
+        return 2 
+
+def test_best_move():
+    test_input_array = [5, 7, 1]
+    truth_array = [2, 1, 1]
+    for inp, truth in zip(test_input_array, truth_array):
+        assert find_best_move(inp) == truth
+
+        if __name__ == "__main__":
+            print("running")
+            test_best_move()
+            print("All tests passed")
