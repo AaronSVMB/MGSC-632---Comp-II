@@ -2,6 +2,7 @@
 all funcitons necessary for playing the multi-group public goods game
 """
 import numpy as np
+import pandas as pd
 import random
 from src.update_contribution import update_contributions_split_dict, update_contributions_shared_dict
 
@@ -228,3 +229,55 @@ def update_contributions_shared(player_type_matrix: np.ndarray, contributions: n
     update_contributions_shared_use = update_contributions_shared_dict[player_type]
     contributions = update_contributions_shared_use(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS)
   return contributions 
+
+#==========================================================================================
+# Functions to store relevant data from rounds of the public goods game
+#==========================================================================================
+
+def metrics_of_interest_array_builder(NUM_GROUPS: int, GROUP_SIZE: int):
+  """_summary_
+  Builds an array to store information from each round of the public goods game
+  :param NUM_GROUPS: the total number of groups
+  :param GROUP_SIZE: the size of each group
+  :return: a blank matrix of size GROUP_SZIE x NUM_GROUPS to store relevant information
+  """
+  metrics_of_interest_array = formed_groups_matrix(GROUP_SIZE, NUM_GROUPS)
+  metrics_of_interest_array[metrics_of_interest_array==0] = 'nan'
+  return metrics_of_interest_array
+
+def update_metrics_of_interest(metrics_of_interest_array: np.ndarray, contributions_matrix: np.ndarray):
+  """_summary_
+  Stores contribution information for a round. Stores players contribution to their groups, their average 
+  contribution across their groups, stores group average contribution, and round average contribution
+  :param metrics_of_interest_array: Space to add data / rows / columns to store round information
+  :param contributions_matrix: relevant round information to insert into our round information matrix
+  :return: relevant round information described in _summary_
+  """
+  for player in range(NUM_PLAYERS):
+      contribution_index = 0
+      for group in range(NUM_GROUPS):
+        if contribution_index == NUM_MEMBERSHIP:
+          break
+        if metrics_of_interest_array[player][group] == 1:
+          metrics_of_interest_array[player][group] = contributions_matrix[player][contribution_index]
+          contribution_index += 1
+  group_means = np.nanmean(metrics_of_interest_array, axis = 0, keepdims = True) # sum of columns
+  metrics_of_interest_array = np.append(metrics_of_interest_array, group_means, axis = 0)
+    
+  player_means = np.nanmean(metrics_of_interest_array, axis = 1, keepdims = True) # sum of rows
+  metrics_of_interest_array = np.append(metrics_of_interest_array, player_means, axis = 1)
+
+  metrics_of_interest_df = pd.DataFrame(metrics_of_interest_array)
+  column_dict, row_dict = {}, {}
+  for group in range(NUM_GROUPS):
+    column_dict[group] = f"group{group}"
+  for player in range(NUM_PLAYERS):
+    row_dict[player] = f"player{player}"
+  column_dict[NUM_GROUPS] = 'playeravg'
+  row_dict[NUM_PLAYERS] = 'groupavg'
+  metrics_of_interest_df.rename(columns = column_dict, index = row_dict, inplace=True) 
+    # Rather than write to csv each time. Append each to a pandas df and only call the csv to write to it once at the end. 
+    # this will make it so I don't have to call the csv file, and it doesn't slow down the code 
+    # create a column called player ID, create a column for Round ID
+    #TODO Add a column for Player ID and for Round #
+  return metrics_of_interest_df
