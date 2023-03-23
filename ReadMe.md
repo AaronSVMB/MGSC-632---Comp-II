@@ -1,6 +1,15 @@
 # Purpose of Code
-`export PYTHONPATH=$PYTHONPATH:./src`
-this is what my code does
+
+This code is for MGSC 632 and ECON 582. In these courses I am looking at the public goods game when participants are decisionmakers in multiple groups and do so simultaneously. Henceforth, this concept will be referred to as the Multi-Group Public Goods Game (MGPGG). As it currently stands, this code offers a simulation of this environment under two endowment conditions – shared and split – and produces expected values for contribution across players, groups, rounds, and matches. 
 
 # Summary of Problem
-hello
+
+In daily life individuals are involved in many groups whether they be social such as ones family or attending church, or far more inpersonal such as being a taxpayer. More so with the social groups than the inpersonal groups, individuals have to straddle their 'endowment' of time and/or money across their groups that they care about. With groups that they derive more utiltiy from getting more of their endowment. In the economics laboratory, this situation can be modeled in the public goods game environment, although most public goods game experiments have group size <= 6 which would moreso constitute a club good, but I digress (Zelmer 2012). There exists a large what I'll call 'standard' public goods game literature in which individuals are involved in one group and that group has a linear payoff function. Typical results showcase more cooperation than game theoretic predictions (0), an inverse relationship between rounds and cooperation, and a sharp fall off in cooperation during the final rounds (end-game effect). In this domain, many have implemented institutional changes that maintain cooperation for longer within the experimental sessions, but still hold onto the single group structure. 
+
+There exists a literature of Multi-Group Public Goods, but from what I've uncovered, the experiments are not common. Of what I could find, they pertain to threshold public goods meant to resemble real-world charities – not social groups. The paper closest to this simulation is McCarter, Sheremeta, and Samak (2014) in which their treatment group is having a shared endowment with no-overlap in group membership in the MGPGG environment. In their paper they do not offer a direct comparison between the economic independence under the split endowment, the exact analagous case to playing the standard PGG, and the economic dependence of the shared endowment, the more realistic of the two. I offer expected value comparisons between these two cases. 
+
+
+In addition to this treatment comparison, I also offer an alternate family of payoff functions. With all groups having a linear payoff function, there exists perfect substitutability among groups; however, this is highly unlikely when the groups in question are thought to be social groups. With this in mind, institutioning a quasi-linear payoff function would rectify this and thus have different decision expections from participants which can be looked at in this simulation. 
+
+
+`export PYTHONPATH=$PYTHONPATH:./src`

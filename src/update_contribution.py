@@ -1,11 +1,26 @@
 """
-TODO write a summary of what these functions do and what they're for
+seperate page to define the functions incorporated in the update_contributions_xxxxx_dictionaries
 """
 import random
+import numpy as np
 
-def update_contributions_split_freeride(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
-    eventually this can just be simply: return 0,0 (once I change the initialize function to be player type based)
+#==========================================================================================
+# Decion rules for the SPLIT endowment regime
+#==========================================================================================
+
+def update_contributions_split_freeride(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
+                                        group_matrix: np.ndarray, ENDOWMENT: int, 
+                                        NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
+    updates the contributions of a free-rider (does not update)
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: the updated contributions for a free-rider
     """
     contribution_index = 0
     for group in range(NUM_GROUPS):
@@ -16,10 +31,21 @@ def update_contributions_split_freeride(player, contributions, payoff_matrix, gr
         contribution_index +=1
     return contributions
 
-def update_contributions_split_conditional(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
-    calculates the changes in contributions for a player who is of type 'conditional cooperator'. This player type bases their decisions off
-    of their payoff in the previous round to their endowment (what could of been their personal account)
+def update_contributions_split_conditional(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray,
+                                           group_matrix: np.ndarray, ENDOWMENT: int,
+                                              NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
+    Calculates the changes in contributions for a player who is of type 'conditional cooperator'. 
+    This player type bases their decisions off of their payoff in the previous round to their
+    endowment (what could of been their personal account)
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: the update contributions for a conditional cooperator
     """
     contribution_index = 0
     for group in range(NUM_GROUPS):
@@ -38,12 +64,20 @@ def update_contributions_split_conditional(player, contributions, payoff_matrix,
             contribution_index += 1 
     return contributions
 
-#==========================================================================================
-#==========================================================================================
-def update_contributions_split_altruist(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
+def update_contributions_split_altruist(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
+                                        group_matrix: np.ndarray, ENDOWMENT: int, 
+                                        NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
     updates the contributions for a player who is of type altruist in the split endowment regime. I might change this function to add some variance
-    to the contributions of an altruist rather than having a static player, but we will see
+    to the contributions of an altruist rather than having a static player, but we will see.
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: updated contribution for an altruist in the split endowment
     """
     contribution_index = 0
     for group in range(NUM_GROUPS):
@@ -54,11 +88,25 @@ def update_contributions_split_altruist(player, contributions, payoff_matrix, gr
         contribution_index +=1
     return contributions
 
-def update_contributions_shared_conditional(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
+#==========================================================================================
+# Decion rules for the SHARED endowment regime
+#==========================================================================================
+
+def update_contributions_shared_conditional(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
+                                            group_matrix: np.ndarray, ENDOWMENT: int, 
+                                            NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
     function to update the contributions under the shared endowment regime for a player who is a conditional cooperator. 
     Conditional cooperators compare their within-group analysis (their payoff based on their contribution) and features
     a between-group analysis (their payoff between/among their groups)
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: the updated contribution for a conditional cooperator in the shared endowment regime
     """
     contribution_index = 0
     in_group = []
@@ -90,9 +138,20 @@ def update_contributions_shared_conditional(player, contributions, payoff_matrix
                 contributions[player][member + 1] += transfer
     return contributions
 
-def update_contributions_shared_freeride(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
-    updates contribution in the shared endowment for a player who is a freerider. This player type is static at 0 contribution ATM 
+def update_contributions_shared_freeride(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
+                                         group_matrix: np.ndarray, ENDOWMENT: int, 
+                                         NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
+    updates contribution in the shared endowment for a player who is a freerider. 
+    This player type is static at 0 contribution ATM
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: updated contribution for a free-rider under the shared endowment
     """
     contribution_index = 0
     for group in range(NUM_GROUPS):
@@ -103,10 +162,20 @@ def update_contributions_shared_freeride(player, contributions, payoff_matrix, g
         contribution_index += 1
     return contributions
 
-def update_contributions_shared_altruist(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS):
-    """
+def update_contributions_shared_altruist(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
+                                         group_matrix: np.ndarray, ENDOWMENT: int, 
+                                         NUM_MEMBERSHIP: int, NUM_GROUPS: int):
+    """_summary_
     updates contribution in shared endowment for a player who is an altruist. Not exactly an altruist. But seen as a person who values 'fairness'
     I am not sure how altruism would be defiend when constrained to giving to multiple groups. 
+    :param player: individual player from NUM_PLAYERS
+    :param contributions: matrix that displays the contribution of an individual
+    :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
+    :param group_matrix: matrix that displays the groups that a player is a part of 
+    :param ENDOWMENT: the resources each player gets at the start of the round 
+    :param NUM_MEMBERSHIP: the number of groups each player is in
+    :param NUM_GROUPS: the total number of groups
+    :return: updates the contribution for an altruist in the shared endowment regime
     """
     contribution_index = 0
     for group in range(NUM_GROUPS):
@@ -115,10 +184,11 @@ def update_contributions_shared_altruist(player, contributions, payoff_matrix, g
         if group_matrix[player][group] == 1:
             contributions[player][group] == ENDOWMENT / NUM_MEMBERSHIP
         contribution_index += 1
-
     return contributions
 
 #==========================================================================================
+# builds functional dictionaries for the player types under both regimes. 
+# Accessed by functions in public_goods_utils.py
 #==========================================================================================
 
 update_contributions_split_dict = {0: update_contributions_split_freeride,
