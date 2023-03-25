@@ -48,6 +48,14 @@ print(test_game[1])
 test_mc = monte_carlo_simulation(SIMS)
 print(test_mc)
 
+x = [i for i in range(NUM_ROUNDS)]
+y = example_MC[1][:-1]
+plt.title(f"Endowment: {ENDOWMENT}, Shared: {SHARED}, In How many groups?: {NUM_MEMBERSHIP}, Group Size: {GROUP_SIZE}, Sims: {SIMS}")
+plt.xlabel("Round")
+plt.ylabel("Expected Round Contribution")
+plt.plot(x, y, color ="green")
+plt.show()
+
 #==========================================================================================
 # Old functional forms
 #==========================================================================================
@@ -110,3 +118,26 @@ print(test_mc)
                 np.savetxt(f, metrics_of_interest_array, delimiter=',')
                 
     return  round_avg_contribution"""
+
+#==========================================================================================
+# Completed TODOs
+#==========================================================================================
+
+# Added specified player type proportions (population wide / or within groups if I am staying with group_size == 4 num_membership == 2)
+
+#DID Add player types and improved decision rule(s) for shared endowment case 
+# Started on. The current decison rule works. Want to improve it even more
+# M-20 Improved on it even more. Added between-group comparison for SHARED endowment.
+
+#DID Initialize contributions for SHARED endowment case with player types
+# Completed
+
+#DID Fix Simulate Game Function for Shared Endowment Case
+# Completed
+
+#DID Improve the way my csv file looks and make sure it works with the monte carlo simulation portion (I think I am only saving the final iterations data as it stands)
+# Completed. It now saves data from all iterations of the Simulation. HOWEVER !!!
+
+## Completed Switch from numpyarray for MOI ==> Pandas DF. to_csv, as well as naming the rows/columns will be of
+# great importance for my capacity to use the data in the future 
+# Did, but now I cannot open the CSV FILE PROPERLY
