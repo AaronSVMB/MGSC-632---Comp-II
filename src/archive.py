@@ -57,6 +57,23 @@ plt.plot(x, y, color ="green")
 plt.show()
 
 #==========================================================================================
+# March 26th
+#==========================================================================================
+
+example_round_avg = player_round_average_contributions(metrics_of_interest, SIMS, NUM_PLAYERS, NUM_ROUNDS)
+
+player_round_avg_contribution_graph(example_round_avg)
+
+
+player_avg_bar_chart(example_round_avg)
+
+x = group_round_average_contribution(metrics_of_interest, NUM_GROUPS, NUM_ROUNDS, SIMS)
+print(x)
+
+#Did Once I do the above, I can make better graphs that show (1) average group level cooperation, (2) average player level coop, (3) average round level coop, etc.
+
+
+#==========================================================================================
 # Old functional forms
 #==========================================================================================
 
