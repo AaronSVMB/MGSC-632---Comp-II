@@ -45,6 +45,6 @@ def monte_carlo_simulation(SIMS: int):
   all_round_avg_contribution_df['Simulation Mean'] = all_round_avg_contribution_df.mean(axis=1)
   all_round_avg_contribution_df.loc['Round Mean'] = all_round_avg_contribution_df.mean()
 
-  all_metrics_of_interest_df.to_csv('metrics_of_interest.csv')
+  all_metrics_of_interest_df.to_csv(f'metrics_of_interest_{SHARED}.csv')
 
   return all_round_avg_contribution_df

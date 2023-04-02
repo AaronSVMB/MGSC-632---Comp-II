@@ -11,10 +11,10 @@ from src.update_contribution import update_contributions_split_dict, update_cont
 #==========================================================================================
 
 NUM_MEMBERSHIP = 2 # Number of groups each player interacts with
-ENDOWMENT = 50 # The Endowment each player receives 
+ENDOWMENT = 160 # The Endowment each player receives 
 SHARED = 1 # 1 if the endowment is shared across groups | 0 if it is split
 GROUP_SIZE = 4 # size of each group
-R = 0.5 # Scale factor
+R = 1.6 # Scale factor
 NUM_ROUNDS = 10 # Number of rounds that players will participate in the public good game
 
 ## When NUM_MEMBERSHIP == 2
@@ -117,6 +117,16 @@ def calculuate_scaled_public_good(contributions: np.ndarray, groups_matrix: np.n
         public_good_matrix[group] += contributions[player][contribution_index]
         contribution_index +=1
   scaled_public_good = R * public_good_matrix
+  return scaled_public_good
+
+def calculuate_scaled_public_good_new(contributions: np.ndarray, groups_matrix: np.ndarray, NUM_PLAYERS: int, R: float):
+  new_public_goods_matrix = np.zeros(NUM_GROUPS)
+  player_contributions_1_groups = player_group_lookup[0,:] # player_group_lookup 2 x NUM_PLAYERS 
+  new_public_goods_matrix[player_contributions_1_groups]  += contributions[:,0].T
+
+  player_contributions_2_groups = player_group_lookup[1,:] # player_group_lookup 2 x NUM_PLAYERS 
+  new_public_goods_matrix[player_contributions_2_groups]  += contributions[:,1].T
+  scaled_public_good = R * new_public_goods_matrix
   return scaled_public_good
 
 #==========================================================================================
