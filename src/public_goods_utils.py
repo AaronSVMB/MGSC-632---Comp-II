@@ -4,7 +4,8 @@ all funcitons necessary for playing the multi-group public goods game
 import numpy as np
 import pandas as pd
 import random
-from src.update_contribution import update_contributions_split_dict, update_contributions_shared_dict
+import math
+from src.update_contribution import update_contributions_split_stochastic_dict, update_contributions_stochastic_shared_dict
 
 #==========================================================================================
 # Set up Parameters
@@ -28,48 +29,100 @@ METHOD = "conditional" # can take on values 'random', 'conditional', 'altruists'
 SIMS = 10000
 
 # For gradient descent
-DELTA = 0.5
+# DELTA is now a function 
+
+TREMBLE = [0.1, 0.1, 0.1] # 0 is F-R, 1 CC, 2 Alt
+# How likely they are to deviate from their strategy (of their player type)
 
 
 #==========================================================================================
 # Functions used regardless of ENDOWMENT scheme
 #==========================================================================================
 
-def initailize_contribtions_with_player_types(NUM_PLAYERS: int, NUM_MEMBERSHIP: int, 
-                                                ENDOWMENT: int, SHARED: bool, player_type_matrix: np.ndarray):
+def init_delta(player_type_matrix: np.ndarray, NUM_PLAYERS: int):
+    """_summary_
+    Endogenizing the learning rates (for gradient descent) of each player. This initializes player
+    learning rates for each iteration of a simulation
+    :param player_type_matrix: the types of each player: 0 F-r, 1 CC, 2, Alt
+    :param NUM_PLAYERS: the number of players
+    :return: returns a column vector of each player DELTA; increases stochasticity
     """
-    _summary_
-    Initializes contributions matrix. Different playertypes startoff giving different amounts. Initial contributions
-    also differs between endowment schemes.
-    :param NUM_PLAYERS: the number of players in the public goods game
-    :param NUM_MEMBERSHIP: the number of groups each player is in 
-    :param ENDOWMENT: the amount of resources given at the start of each round to players
-    :param SHARED: boolean: 1 if the endowment is shared | 0 if the endowment is split
-    :param player_type_matrix: NUM_PLAYERS x 1 - displays the type of the player
-    :return: contributions_matrix size NUM_PLAYERS x NUM_MEMBERSHIP. cells are the contributions to that group
+    DELTA = np.zeros([NUM_PLAYERS,1])
+    for player in range(NUM_PLAYERS):
+        player_type = player_type_matrix[player]
+        if player_type == 1: # conditional cooperator
+            DELTA[player] = np.random.normal(0.75, 0.25)
+        else: # arguing that free-riders and altruists are less responsive (less likely to learn)
+            DELTA[player] = abs(np.random.standard_normal()) * 0.7
+        DELTA[player] = max(0.65,DELTA[player])
+        DELTA[player] = min(1, DELTA[player])
+    return DELTA
+
+def update_delta(DELTA: np.ndarray, NUM_PLAYERS: int):
+    """_summary_
+    After each round, update the learning rate of the players. I have it assumed now that
+    each player, regardless of player type and realized contribution, decreases their
+    learning rates as the number of rounds increases
+    :param DELTA: the learning rate of each player stored in np.ndarray NUM_PLAYERS x 1
+    :param NUM_PLAYERS: the number of players
+    :return: the updated DELTA values for each player as an np.ndarray
     """
-    initial_contributions = np.zeros([NUM_PLAYERS,NUM_MEMBERSHIP]) 
+    prob = 0.4
+    for player in range(NUM_PLAYERS):
+        if DELTA[player] > 0:
+            if np.random.rand() < prob:
+                DELTA[player] -= (DELTA[player]**2) *np.random.rand() # This might be too oppressive but we shall we
+            else:
+               if np.random.rand() < prob:
+                  DELTA[player] += (DELTA[player]**2) *np.random.rand()
+        DELTA[player] = max(0, DELTA[player])
+        DELTA[player] = min(1, DELTA[player])
+    return DELTA
+
+def initialize_contributions_with_distribution(NUM_PLAYERS: int, NUM_MEMBERSHIP: int, 
+                                               ENDOWMENT: int, SHARED: bool, player_type_matrix: np.ndarray, DELTA: np.ndarray):
+    initial_contributions = np.zeros([NUM_PLAYERS, NUM_MEMBERSHIP])
     if SHARED == 1:
         for player in range(NUM_PLAYERS):
             player_type = player_type_matrix[player]
-            if player_type == 1: 
-                initial_contribution_first_group = random.randint(0, ENDOWMENT)
-                initial_contributions[player][0] = initial_contribution_first_group
+            if player_type == 0:
+                if np.random.rand() < TREMBLE[0]: # chance for free-rider to deviate in initial round
+                    initial_contributions[player][0] = np.random.randint(0, ENDOWMENT * 0.15)
                 for member in range(1, NUM_MEMBERSHIP):
-                    successive_initial_contributions = random.randint(0,ENDOWMENT - initial_contribution_first_group)
-                    initial_contributions[player][member] = successive_initial_contributions
-                    initial_contribution_first_group += successive_initial_contributions
-            if player_type == 2: # if altruist : this more so resembles "fairness" not altruism 
-                initial_contributions[player][:] = ENDOWMENT / NUM_MEMBERSHIP
+                    initial_contributions[player][member] = np.random.randint(0, ENDOWMENT * 0.15)
+            if player_type == 1:
+                initial_contribution_first_group = max(0, np.random.normal(ENDOWMENT * 0.5, ENDOWMENT * 0.25))
+                initial_contribution_first_group = min(ENDOWMENT, initial_contribution_first_group)
+                initial_contributions[player][0] = int(initial_contribution_first_group)
+                for member in range(1, NUM_MEMBERSHIP):
+                    successive_contribution = max(0, np.random.normal(ENDOWMENT * 0.5, ENDOWMENT * 0.25))
+                    successive_contribution = min(successive_contribution, ENDOWMENT - initial_contribution_first_group)
+                    initial_contributions[player][member] = int(successive_contribution)
+                    initial_contribution_first_group += successive_contribution
+            if player_type == 2: # chance for altruist to deviate from player type in initial contribution
+                if np.random.rand() > TREMBLE[2]:
+                    initial_contributions[player][:] = np.random.randint((ENDOWMENT / NUM_MEMBERSHIP) * 0.85,
+                                                                         ENDOWMENT / NUM_MEMBERSHIP)
+                else:
+                    initial_contributions[player][:] = np.random.randint((ENDOWMENT / NUM_MEMBERSHIP) * 0.5,
+                                                                         ENDOWMENT / NUM_MEMBERSHIP)
     else:
         for player in range(NUM_PLAYERS):
             player_type = player_type_matrix[player]
-            if player_type == 1: # if they are a conditional cooperator
-                for group_member in range(NUM_MEMBERSHIP):
-                    initial_contributions[player][group_member] = random.randint(0,(ENDOWMENT / NUM_MEMBERSHIP))
-            if player_type == 2: # if they are an altruist
-                initial_contributions[player][:] = ENDOWMENT / NUM_MEMBERSHIP
-    return initial_contributions
+            for group_member in range(NUM_MEMBERSHIP):
+                contribution_amount = np.random.randint(0, ENDOWMENT / NUM_MEMBERSHIP)
+                if player_type == 0:
+                    initial_contributions[player][group_member] = np.random.randint(0, contribution_amount* 0.15)
+                if player_type == 1:
+                     initial_contributions[player][group_member] = contribution_amount 
+                if player_type == 2:
+                    initial_contributions[player][group_member] =  np.random.randint((ENDOWMENT / NUM_MEMBERSHIP) * 0.75, ENDOWMENT / NUM_MEMBERSHIP)
+    for player in range(NUM_PLAYERS):
+        initial_contributions[player][:] *= DELTA[player]
+    initial_contributions = np.round(initial_contributions)
+    initial_contributions = initial_contributions.astype(int)
+    return initial_contributions # avg contribution is a little high, but workable (can make better later, but at least I have stochasticity here now)
+
 
 def formed_groups_matrix(GROUP_SIZE: int, NUM_GROUPS: int):
   """_summary_
@@ -119,7 +172,7 @@ def calculuate_scaled_public_good(contributions: np.ndarray, groups_matrix: np.n
   scaled_public_good = R * public_good_matrix
   return scaled_public_good
 
-def calculuate_scaled_public_good_new(contributions: np.ndarray, groups_matrix: np.ndarray, NUM_PLAYERS: int, R: float):
+"""def calculuate_scaled_public_good_new(contributions: np.ndarray, groups_matrix: np.ndarray, NUM_PLAYERS: int, R: float):
   new_public_goods_matrix = np.zeros(NUM_GROUPS)
   player_contributions_1_groups = player_group_lookup[0,:] # player_group_lookup 2 x NUM_PLAYERS 
   new_public_goods_matrix[player_contributions_1_groups]  += contributions[:,0].T
@@ -127,7 +180,7 @@ def calculuate_scaled_public_good_new(contributions: np.ndarray, groups_matrix: 
   player_contributions_2_groups = player_group_lookup[1,:] # player_group_lookup 2 x NUM_PLAYERS 
   new_public_goods_matrix[player_contributions_2_groups]  += contributions[:,1].T
   scaled_public_good = R * new_public_goods_matrix
-  return scaled_public_good
+  return scaled_public_good"""
 
 #==========================================================================================
 # Functions for Split Endowment
@@ -174,24 +227,14 @@ def initialize_player_types(NUM_PLAYERS: int, update_contributions_split_dict: d
     player_type_matrix[1], player_type_matrix[4], player_type_matrix[12],player_type_matrix[14] = 2, 2, 2, 2
   return player_type_matrix
 
-def update_contributions_split(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
-                                group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, DELTA: float):
-  """_summary_
-  utilizes the 'update_contributions_split_dict' to update the contributions for all players based off their player types 
-  :param player_type_matrix: matrix of size NUM_PLAYERS x 1 that displays each players type
-  :param contributions: matrix that displays a palyers contributions to their group: NUM_PLAYERS x NUM_MEMBERSHIP
-  :param payoff_matrix: the payoff that each individual gets from participating in their group
-  :param group_matrix:  matrix that displays what groups a player is in: NUM_PLAYERS x NUM_GROUPS
-  :param ENDOWMENT: the amount of resources given at the start of each round to players
-  :param NUM_MEMBERSHIP: the number of groups each player is in 
-  :param DELTA: gradient descent learning rate 
-  :return: the updated contributions matrix for individuals to contribute in the current round based off their last rounds experience
-  """
-  for player in range(NUM_PLAYERS):
-    player_type = int(player_type_matrix[player])
-    update_contributions_split_use = update_contributions_split_dict[player_type]
-    contributions = update_contributions_split_use(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS, DELTA)
-  return contributions
+def update_contributions_stochastic_split(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
+                                group_matrix: np.ndarray, ENDOWMENT: int,
+                                  NUM_MEMBERSHIP: int, DELTA: np.ndarray, TREMBLE: list):
+    for player in range(NUM_PLAYERS):
+        player_type = int(player_type_matrix[player])
+        update_contributions_split_use = update_contributions_split_stochastic_dict[player_type]
+        contributions = update_contributions_split_use(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS, DELTA, TREMBLE)
+    return contributions
 
 #==========================================================================================
 # Functions for Shared Endowment
@@ -218,8 +261,8 @@ def calculate_payoff_shared(contributions: np.ndarray, group_matrix: np.ndarray,
   return payoffs_matrix
   # removed endowment for now since it is a little confusing with the endowment in both groups since it would double count
 
-def update_contributions_shared(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
-                                 group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, DELTA: float):
+def update_contributions_stochastic_shared(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
+                                 group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, DELTA: np.ndarray, TREMBLE: list):
   """_summary_
   updates contribution for all players in the shared endowment regime. Uses the 'update_contributions_shared_dict' 
   to access their player-type specific update function
@@ -234,8 +277,8 @@ def update_contributions_shared(player_type_matrix: np.ndarray, contributions: n
   """
   for player in range(NUM_PLAYERS):
     player_type = int(player_type_matrix[player])
-    update_contributions_shared_use = update_contributions_shared_dict[player_type]
-    contributions = update_contributions_shared_use(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS, DELTA)
+    update_contributions_shared_use = update_contributions_stochastic_shared_dict[player_type]
+    contributions = update_contributions_shared_use(player, contributions, payoff_matrix, group_matrix, ENDOWMENT, NUM_MEMBERSHIP, NUM_GROUPS, DELTA, TREMBLE)
   return contributions 
 
 #==========================================================================================
@@ -298,7 +341,8 @@ def update_metrics_of_interest(metrics_of_interest_array: np.ndarray, contributi
 #==========================================================================================
 # Simulate public goods game for one simulation, round number of times
 #==========================================================================================
-
+#TODO Update simulate game to correspond and work with the new update decion functions, and initialization functions
+# for both DELTA and for contributions, player types, etc. 
 def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool, 
                       GROUP_SIZE: int, R: float, NUM_GROUPS: int, NUM_PLAYERS: int,
                         NUM_ROUNDS: int, METHOD: str, current_sim: int):
