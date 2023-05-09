@@ -1,5 +1,5 @@
 """
-seperate page to define the functions incorporated in the update_contributions_xxxxx_dictionaries
+Seperate page to define the functions incorporated in the update_contributions_xxx_dictionaries.
 """
 import random
 import numpy as np
@@ -12,6 +12,21 @@ import math
 def update_contributions_split_stochastic_freerider(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                         group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, 
                                         NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
+    """
+    Takes in the contribution for a free-rider in the split endowment regime, implements stochasticity, and updates their
+    contributions based on priors. 
+
+    :param player: the player that has the type of being a free-rider
+    :param contributions: their contributions to their groups in a round
+    :param payoff_matrix: the payoff they received from their and their groups decisions in the previous round
+    :param group_matrix: matrix regarding the group that each player is part of 
+    :param ENDOWMENT: the points that, in this case, the player receives for groups in each round: since split 2 endowments
+    :param NUM_MEMBERSHIP: the number of groups each player is a part of 
+    :param NUM_GROUPS: the total number of groups
+    :param DELTA: the players learning rate
+    :param TREMBLE: the players chance of deviating from their player type
+    :return: a free-riders updated contributions stored in the contributions matrix
+    """
     contribution_index = 0
     for group in range(NUM_GROUPS):
         if contribution_index >- NUM_MEMBERSHIP:
@@ -23,13 +38,27 @@ def update_contributions_split_stochastic_freerider(player: int, contributions: 
                     contributions[player][group] -= new_contribution
                     contributions[player][group] = max(0, contributions[player][group] )
             else: # behaving abnormally
-                contributions[player][group] += DELTA[player] * np.random.randint(0, ENDOWMENT - sum(contributions[player][:]))
+                contributions[player][group] += DELTA[player] * np.random.randint(0, math.floor(ENDOWMENT / NUM_MEMBERSHIP * DELTA[player]))
         contribution_index += 1
     return contributions 
 
 def update_contributions_split_stochastic_conditional(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                         group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, 
                                         NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
+    """
+    Updated the contribution with stochasticity for a conditional cooperator in the  split endowment regime
+
+    :param player: player who has the type of conditional cooperator
+    :param contributions: their contribution 
+    :param payoff_matrix: their payoff for their previous round choice
+    :param group_matrix: what groups this player is involved with
+    :param ENDOWMENT: the points that, in this case, the player receives for groups in each round: since split 2 endowments 
+    :param NUM_MEMBERSHIP: the number of groups each player is part of 
+    :param NUM_GROUPS: the total number of groups
+    :param DELTA: the learning rates for each player
+    :param TREMBLE: the chance each player has to deviate from their assigned strategy
+    :return: returns the updated contributions for the conditional cooperator in the contribution matrix
+    """
     contribution_index = 0
     for group in range(NUM_GROUPS):
         if contribution_index >= NUM_MEMBERSHIP:
@@ -52,13 +81,27 @@ def update_contributions_split_stochastic_conditional(player: int, contributions
 def update_contributions_split_stochastic_altruist(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                         group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, 
                                         NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
+    """
+    Updates the contributions with stochasticity for a player who is the type of being an 'altruist'
+
+    :param player: the player who has the type of altruist
+    :param contributions: the matrix of contributions in the previous round
+    :param payoff_matrix: the matrix of payoffs for players in the previous round based off of the realized decisions in their groups
+    :param group_matrix: matrix showing the group structure
+    :param ENDOWMENT: the 2 separate endowments that each player receives and decides to allocate with
+    :param NUM_MEMBERSHIP: the number of groups each player is part of 
+    :param NUM_GROUPS: the total number of groups
+    :param DELTA: the learning rate for each player 
+    :param TREMBLE: the chance to deviate from their player type 
+    :return: returns the updated contribution for one player of the altruist type via the full contribution matrix
+    """
     contribution_index = 0
     for group in range(NUM_GROUPS):
         if contribution_index >= NUM_MEMBERSHIP:
             break
         if np.random.rand() > TREMBLE[2]:
             if group_matrix[player][group] == 1:
-                contributions[player][group] = np.random.randint(contributions[player][group], ENDOWMENT // NUM_MEMBERSHIP)
+                contributions[player][group] = np.random.randint(contributions[player][group], ENDOWMENT / NUM_MEMBERSHIP)
         else:
             contributions[player][group] -= max(0, np.random.randint(0, contributions[player][group] )) * DELTA[player]
         contribution_index += 1
@@ -71,10 +114,11 @@ def update_contributions_split_stochastic_altruist(player: int, contributions: n
 def update_contributions_stochastic_shared_conditional(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                             group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int,
                                               NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
-    """_summary_
-    function to update the contributions under the shared endowment regime for a player who is a conditional cooperator. 
+    """
+    Function to update the contributions under the shared endowment regime for a player who is a conditional cooperator. 
     Conditional cooperators compare their within-group analysis (their payoff based on their contribution) and features
-    a between-group analysis (their payoff between/among their groups)
+    a between-group analysis (their payoff between/among their groups).
+
     :param player: individual player from NUM_PLAYERS
     :param contributions: matrix that displays the contribution of an individual
     :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
@@ -125,9 +169,10 @@ def update_contributions_stochastic_shared_conditional(player: int, contribution
 def update_contributions_stochastic_shared_freeride(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                          group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, 
                                          NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
-    """_summary_
-    updates contribution in the shared endowment for a player who is a freerider. 
-    This player type is static at 0 contribution ATM
+    """
+    Updates contribution in the shared endowment for a player who is a freerider. 
+    This player type is static at 0 contribution ATM.
+
     :param player: individual player from NUM_PLAYERS
     :param contributions: matrix that displays the contribution of an individual
     :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
@@ -147,16 +192,17 @@ def update_contributions_stochastic_shared_freeride(player: int, contributions: 
                 if contributions[player][group] > 0:
                     contributions[player][group] -= np.random.randint(0, contributions[player][group])
             else:
-                contributions[player][group] += np.random.randint(0, contributions[player][group]) * DELTA[player]
+                contributions[player][group] += np.random.randint(0, contributions[player][group] + 1) * DELTA[player]
         contribution_index += 1
     return contributions
 
 def update_contributions_stochastic_shared_altruist(player: int, contributions: np.ndarray, payoff_matrix: np.ndarray, 
                                          group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, 
                                          NUM_GROUPS: int, DELTA: np.ndarray, TREMBLE: list):
-    """_summary_
-    updates contribution in shared endowment for a player who is an altruist. Not exactly an altruist. But seen as a person who values 'fairness'
+    """
+    Updates contribution in shared endowment for a player who is an altruist. Not exactly an altruist. But seen as a person who values 'fairness'
     I am not sure how altruism would be defiend when constrained to giving to multiple groups. 
+
     :param player: individual player from NUM_PLAYERS
     :param contributions: matrix that displays the contribution of an individual
     :param payoff_matrix: matrix that dispalys the payoff a player gets from their group
@@ -181,7 +227,7 @@ def update_contributions_stochastic_shared_altruist(player: int, contributions: 
     return contributions
 
 #==========================================================================================
-# builds functional dictionaries for the player types under both regimes. 
+# Builds functional dictionaries for the player types under both regimes. 
 # Accessed by functions in public_goods_utils.py
 #==========================================================================================
 

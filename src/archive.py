@@ -1,5 +1,5 @@
-"""_summary_
-Old code that I did not yet want to delete. Mostly code that I did not want to lose, butno longer want in 
+"""
+Old code that I did not yet want to delete. Mostly code that I did not want to lose, but no longer want in 
 my 'working space' of my Jupyter notebook file.
 """
 
@@ -444,3 +444,5 @@ def update_contributions_shared(player_type_matrix: np.ndarray, contributions: n
 # great importance for my capacity to use the data in the future 
 # Did, but now I cannot open the CSV FILE PROPERLY
 
+# Update simulate game to correspond and work with the new update decion functions, and initialization functions
+# for both DELTA and for contributions, player types, etc. 

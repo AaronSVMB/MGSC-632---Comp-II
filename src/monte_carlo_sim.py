@@ -1,4 +1,4 @@
-"""_summary_
+"""
 Runs the public goods game for simulation number of times. Using the monte carlo method to derive
 expected contributions at the player, groun, round, and simulation level.
 """
@@ -10,20 +10,21 @@ from src.public_goods_utils import *
 #==========================================================================================
 
 def monte_carlo_simulation(SIMS: int):
-  """_summary_
-  Run game with same parameters simulation number of times. Stores as a data frame currently
+  """
+  Run game with same parameters simulation number of times. Stores as a data frame currently.
+
   :param SIMS: the number of simulations to run
   :return: Tuple - two dfs that store metrics on the MGPGG
   """
   current_round_avg_contribution, all_metrics_of_interest_df  = simulate_game(NUM_MEMBERSHIP, ENDOWMENT, SHARED, 
-                                           GROUP_SIZE, R, NUM_GROUPS, NUM_PLAYERS, NUM_ROUNDS, METHOD, 0)
+                                           GROUP_SIZE, R, NUM_GROUPS, NUM_PLAYERS, NUM_ROUNDS, METHOD, 0, TREMBLE)
   # Easy to access expected round contribution 
   all_round_avg_contribution_df = pd.DataFrame(current_round_avg_contribution).T
   
 
   for current_sim in range(1, SIMS):
     current_round_avg_contribution, current_metrics_of_interest_df  = simulate_game(NUM_MEMBERSHIP, ENDOWMENT, SHARED, 
-                                           GROUP_SIZE, R, NUM_GROUPS, NUM_PLAYERS, NUM_ROUNDS, METHOD, current_sim)
+                                           GROUP_SIZE, R, NUM_GROUPS, NUM_PLAYERS, NUM_ROUNDS, METHOD, current_sim, TREMBLE)
     
     #easy to aaccess expected round contribution
     current_round_contribution_df = pd.DataFrame(current_round_avg_contribution).T

@@ -1,10 +1,10 @@
 """
-all funcitons necessary for playing the multi-group public goods game
+All funcitons necessary for playing the multi-group public goods game
 """
+import math
+import random
 import numpy as np
 import pandas as pd
-import random
-import math
 from src.update_contribution import update_contributions_split_stochastic_dict, update_contributions_stochastic_shared_dict
 
 #==========================================================================================
@@ -15,15 +15,15 @@ NUM_MEMBERSHIP = 2 # Number of groups each player interacts with
 ENDOWMENT = 160 # The Endowment each player receives 
 SHARED = 1 # 1 if the endowment is shared across groups | 0 if it is split
 GROUP_SIZE = 4 # size of each group
-R = 1.6 # Scale factor
-NUM_ROUNDS = 10 # Number of rounds that players will participate in the public good game
+R = 0.4 # Scale factor
+NUM_ROUNDS = 20 # Number of rounds that players will participate in the public good game
 
 ## When NUM_MEMBERSHIP == 2
 NUM_GROUPS = GROUP_SIZE * 2 # number of groups
 NUM_PLAYERS = GROUP_SIZE ** 2 # Number of players in the system
 
 # Player type initialize 
-METHOD = "conditional" # can take on values 'random', 'conditional', 'altruists', and 'mixed'
+METHOD = "random" # can take on values 'random', 'conditional', 'altruists', and 'mixed'
 
 # For Monte Carlo Simulation
 SIMS = 10000
@@ -39,10 +39,32 @@ TREMBLE = [0.1, 0.1, 0.1] # 0 is F-R, 1 CC, 2 Alt
 # Functions used regardless of ENDOWMENT scheme
 #==========================================================================================
 
+def round_effect(round: int, player_type_matrix: np.ndarray, NUM_PLAYERS: int, contributions: np.ndarray):
+  """
+  Mirror decay in cooperation that is found in the public goods game. From experiments suchs as Kurzban and Houser (2002)
+  This mainly comes from reducing confusion and constant social motives.
+
+  :param round: the current round
+  :param player_type_matrix: NUM_PLAYERS x 1 matrix where each cell corresponds to that players assigned player-type for that simulation
+  :param NUM_PLAYERS: the number of players in the current simulation (currently stuck at 16)
+  :param contributions: the current round contribution for that player before being adjusted for round_effect
+  :return: the contributions with the round effect
+  """
+  if round == 0:
+     return contributions
+  for player in range(NUM_PLAYERS):
+    player_type = player_type_matrix[player]
+    if player_type == 0: # free-rider
+      contributions[player][:] = contributions[player][:] * (math.e **(-0.01 * round))
+    if player_type == 1:
+      contributions[player][:] = contributions[player][:] * (math.e **(-0.01 * round))
+  return contributions
+
 def init_delta(player_type_matrix: np.ndarray, NUM_PLAYERS: int):
-    """_summary_
+    """ 
     Endogenizing the learning rates (for gradient descent) of each player. This initializes player
-    learning rates for each iteration of a simulation
+    learning rates for each iteration of a simulation.
+
     :param player_type_matrix: the types of each player: 0 F-r, 1 CC, 2, Alt
     :param NUM_PLAYERS: the number of players
     :return: returns a column vector of each player DELTA; increases stochasticity
@@ -59,10 +81,11 @@ def init_delta(player_type_matrix: np.ndarray, NUM_PLAYERS: int):
     return DELTA
 
 def update_delta(DELTA: np.ndarray, NUM_PLAYERS: int):
-    """_summary_
+    """
     After each round, update the learning rate of the players. I have it assumed now that
     each player, regardless of player type and realized contribution, decreases their
     learning rates as the number of rounds increases
+
     :param DELTA: the learning rate of each player stored in np.ndarray NUM_PLAYERS x 1
     :param NUM_PLAYERS: the number of players
     :return: the updated DELTA values for each player as an np.ndarray
@@ -81,6 +104,17 @@ def update_delta(DELTA: np.ndarray, NUM_PLAYERS: int):
 
 def initialize_contributions_with_distribution(NUM_PLAYERS: int, NUM_MEMBERSHIP: int, 
                                                ENDOWMENT: int, SHARED: bool, player_type_matrix: np.ndarray, DELTA: np.ndarray):
+  """
+  Implements contributions based on a distribution for when players tremble. Adds in more stochasticity that was necessary
+
+  :param NUM_PLAYERS: the number of players (stuck at 16)
+  :param NUM_MEMBERSHIP: the number of groups each player participates in (for the experiment 2)
+  :param ENDOWMENT: the points that each player is given at the start of each round, (2 endowments for the split endowment; 1 for the shared)
+  :param SHARED: boolean. 1 if the treatment is SHARED endowment; otherwise 0 (SPLIT)
+  :param player_type_matrix: the types of each player: 0 F-r, 1 CC, 2, Alt
+  :param DELTA: learning rate
+  :return: initial contributions matrix for each simulation 
+  """
     initial_contributions = np.zeros([NUM_PLAYERS, NUM_MEMBERSHIP])
     if SHARED == 1:
         for player in range(NUM_PLAYERS):
@@ -112,11 +146,11 @@ def initialize_contributions_with_distribution(NUM_PLAYERS: int, NUM_MEMBERSHIP:
             for group_member in range(NUM_MEMBERSHIP):
                 contribution_amount = np.random.randint(0, ENDOWMENT / NUM_MEMBERSHIP)
                 if player_type == 0:
-                    initial_contributions[player][group_member] = np.random.randint(0, contribution_amount* 0.15)
+                    initial_contributions[player][group_member] = 0 #TODO add in stochasticity
                 if player_type == 1:
                      initial_contributions[player][group_member] = contribution_amount 
                 if player_type == 2:
-                    initial_contributions[player][group_member] =  np.random.randint((ENDOWMENT / NUM_MEMBERSHIP) * 0.75, ENDOWMENT / NUM_MEMBERSHIP)
+                    initial_contributions[player][group_member] =  np.random.randint(int((ENDOWMENT / NUM_MEMBERSHIP) * 0.75), ENDOWMENT / NUM_MEMBERSHIP)
     for player in range(NUM_PLAYERS):
         initial_contributions[player][:] *= DELTA[player]
     initial_contributions = np.round(initial_contributions)
@@ -125,8 +159,9 @@ def initialize_contributions_with_distribution(NUM_PLAYERS: int, NUM_MEMBERSHIP:
 
 
 def formed_groups_matrix(GROUP_SIZE: int, NUM_GROUPS: int):
-  """_summary_
+  """
   Function to form groups in the form of a matrix in a NUM_PLAYERS x NUM_GROUPS sized matrix. 
+
   :param GROUP_SIZE: the size of each group
   :param NUM_GROUPS: the total number of each group
   :return: matrix NUM_PLAYERS x NUM_GROUPS : displays 1 or 0 in cells whether or not a player is in that group
@@ -151,9 +186,10 @@ def formed_groups_matrix(GROUP_SIZE: int, NUM_GROUPS: int):
   return groups_matrix
 
 def calculuate_scaled_public_good(contributions: np.ndarray, groups_matrix: np.ndarray, NUM_PLAYERS: int, R: float):
-  """_summary_
+  """
   Function to sum up the contributions in a given group and then multiply it by the scale factor. Since it matters which 
   contribution goes to which group I keep track of a contribution_index variable.
+
   :param contributions: matrix that displays a palyers contributions to their group: NUM_PLAYERS x NUM_MEMBERSHIP
   :param groups_matrix: matrix that displays what groups a player is in: NUM_PLAYERS x NUM_GROUPS
   :param NUM_PLAYERS: the total number of players 
@@ -187,8 +223,9 @@ def calculuate_scaled_public_good(contributions: np.ndarray, groups_matrix: np.n
 #==========================================================================================
 
 def calculate_payoff_split(contributions: np.ndarray, group_matrix: np.ndarray, ENDOWMENT: int, scaled_public_good: np.ndarray):
-  """_summary_ 
+  """ 
   Calculates the payoff when the groups are economically independent (split endowment).
+
   :param contributions: matrix that displays a palyers contributions to their group: NUM_PLAYERS x NUM_MEMBERSHIP
   :param group_matrix: matrix that displays what groups a player is in: NUM_PLAYERS x NUM_GROUPS
   :param ENDOWMENT: the amount of resources given at the start of each round to players
@@ -208,8 +245,9 @@ def calculate_payoff_split(contributions: np.ndarray, group_matrix: np.ndarray, 
 
 
 def initialize_player_types(NUM_PLAYERS: int, update_contributions_split_dict: dict, METHOD: str):
-  """_summary_
+  """
   initializes player types based off of prespecified scenerios 
+
   :param NUM_PLAYERS: the total number of players
   :param update_contributions_split_dict: dictionary containing the relevant playertypes
   :param METHOD: specifies desired population 'mix'
@@ -230,6 +268,19 @@ def initialize_player_types(NUM_PLAYERS: int, update_contributions_split_dict: d
 def update_contributions_stochastic_split(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
                                 group_matrix: np.ndarray, ENDOWMENT: int,
                                   NUM_MEMBERSHIP: int, DELTA: np.ndarray, TREMBLE: list):
+  """
+  Updates contributions with stochasticity for the split endowment
+
+  :param player_type_matrix: the player type of each player in the current iteration (static for that iteration)
+  :param contributions: the contributions each player is making to their groups
+  :param payoff_matrix: the payoff from each group in a round for each player
+  :param group_matrix: the groups that each individual is a member of 
+  :param ENDOWMENT: the points that each player is endowed in a given round for their group / groups (depending on treatment)
+  :param NUM_MEMBERSHIP: the number of groups each member is part of 
+  :param DELTA: the learning rate for each player 
+  :param TREMBLE: the chance that each subject has to deviate from their player type
+  :return: updated contributions matrix
+  """
     for player in range(NUM_PLAYERS):
         player_type = int(player_type_matrix[player])
         update_contributions_split_use = update_contributions_split_stochastic_dict[player_type]
@@ -241,8 +292,9 @@ def update_contributions_stochastic_split(player_type_matrix: np.ndarray, contri
 #==========================================================================================
 
 def calculate_payoff_shared(contributions: np.ndarray, group_matrix: np.ndarray, ENDOWMENT: int, scaled_public_good: np.ndarray):
-  """_summary_
-  How to calculate the payoff for an indiivdal contributing to their groups. The endowment is removed since it would be double counted
+  """
+  How to calculate the payoff for an indiivdal contributing to their groups. The endowment is removed since it would be double counted.
+
   :param contributions: matrix that displays a palyers contributions to their group: NUM_PLAYERS x NUM_MEMBERSHIP
   :param group_matrix: matrix that displays what groups a player is in: NUM_PLAYERS x NUM_GROUPS
   :param ENDOWMENT: the amount of resources given at the start of each round to players
@@ -263,9 +315,10 @@ def calculate_payoff_shared(contributions: np.ndarray, group_matrix: np.ndarray,
 
 def update_contributions_stochastic_shared(player_type_matrix: np.ndarray, contributions: np.ndarray, payoff_matrix: np.ndarray,
                                  group_matrix: np.ndarray, ENDOWMENT: int, NUM_MEMBERSHIP: int, DELTA: np.ndarray, TREMBLE: list):
-  """_summary_
-  updates contribution for all players in the shared endowment regime. Uses the 'update_contributions_shared_dict' 
-  to access their player-type specific update function
+  """
+  Updates contribution for all players in the shared endowment regime. Uses the 'update_contributions_shared_dict' 
+  to access their player-type specific update function.
+
   :param player_type_matrix: matrix of size NUM_PLAYERS x 1 that displays each players type
   :param contributions: matrix that displays a palyers contributions to their group: NUM_PLAYERS x NUM_MEMBERSHIP
   :param payoff_matrix: the payoffs individuals get for being in their groups
@@ -287,8 +340,9 @@ def update_contributions_stochastic_shared(player_type_matrix: np.ndarray, contr
 
 def metrics_of_interest_array_builder(NUM_GROUPS: int, GROUP_SIZE: int, NUM_PLAYERS: int, 
 current_round: int, current_sim: int):
-  """_summary_
-  Builds an array to store information from each round of the public goods game
+  """
+  Builds an array to store information from each round of the public goods game.
+
   :param NUM_GROUPS: the total number of groups
   :param GROUP_SIZE: the size of each group
   :return: a blank matrix of size GROUP_SZIE x (NUM_GROUPS + 2) to store relevant information
@@ -305,9 +359,10 @@ current_round: int, current_sim: int):
 
 def update_metrics_of_interest(metrics_of_interest_array: np.ndarray, contributions_matrix: np.ndarray,
  groups_matrix: np.ndarray):
-  """_summary_
+  """
   Stores contribution information for a round. Stores players contribution to their groups, their average 
-  contribution across their groups, stores group average contribution, and round average contribution
+  contribution across their groups, stores group average contribution, and round average contribution.
+
   :param metrics_of_interest_array: Space to add data / rows / columns to store round information
   :param contributions_matrix: relevant round information to insert into our round information matrix
   :return: relevant round information described in _summary_
@@ -341,14 +396,13 @@ def update_metrics_of_interest(metrics_of_interest_array: np.ndarray, contributi
 #==========================================================================================
 # Simulate public goods game for one simulation, round number of times
 #==========================================================================================
-#TODO Update simulate game to correspond and work with the new update decion functions, and initialization functions
-# for both DELTA and for contributions, player types, etc. 
 def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool, 
                       GROUP_SIZE: int, R: float, NUM_GROUPS: int, NUM_PLAYERS: int,
-                        NUM_ROUNDS: int, METHOD: str, current_sim: int):
-  """_summary_
+                        NUM_ROUNDS: int, METHOD: str, current_sim: int, TREMBLE: list):
+  """
   Simulate multiple rounds of the multi-group public goods game. The different cases are for which endowment regime is in place, SHARED or SPLIT
-  for which there exists two distinct function families
+  for which there exists two distinct function families.
+
   :param NUM_MEMBERSHIP: the number of groups each player is in
   :param ENDOWMENT: the resources each agent has at the start of each round
   :param SHARED: shared or split endowment regime
@@ -361,8 +415,10 @@ def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool,
   :param current_sim: the number of the current simulation that the program is executing
   :return: Tuple - [0] easy access to round average contribution [1] MOI_df that stores [0] & more information
   """
-  player_types_matrix = initialize_player_types(NUM_PLAYERS, update_contributions_split_dict, METHOD)
-  contributions_matrix = initailize_contribtions_with_player_types(NUM_PLAYERS, NUM_MEMBERSHIP, ENDOWMENT, SHARED, player_types_matrix)
+  
+  player_types_matrix = initialize_player_types(NUM_PLAYERS, update_contributions_split_stochastic_dict, METHOD)
+  DELTA = init_delta(player_types_matrix, NUM_PLAYERS)
+  contributions_matrix = initialize_contributions_with_distribution(NUM_PLAYERS, NUM_MEMBERSHIP, ENDOWMENT, SHARED, player_types_matrix, DELTA)
   groups_matrix = formed_groups_matrix(GROUP_SIZE, NUM_GROUPS)
 
   metrics_of_interest_array_all_rounds = metrics_of_interest_array_builder(NUM_GROUPS, GROUP_SIZE, NUM_PLAYERS, 0, current_sim)
@@ -375,7 +431,8 @@ def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool,
     for current_round in range(1, NUM_ROUNDS):
       scaled_public_good_matrix = calculuate_scaled_public_good(contributions_matrix, groups_matrix, NUM_PLAYERS, R)
       payoff_matrix = calculate_payoff_shared(contributions_matrix, groups_matrix, ENDOWMENT, scaled_public_good_matrix)
-      contributions_matrix = update_contributions_shared(player_types_matrix, contributions_matrix, payoff_matrix, groups_matrix, ENDOWMENT, NUM_MEMBERSHIP, DELTA)
+      contributions_matrix = update_contributions_stochastic_shared(player_types_matrix, contributions_matrix, payoff_matrix, groups_matrix, ENDOWMENT, NUM_MEMBERSHIP, DELTA, TREMBLE)
+      contributions_matrix = round_effect(current_round, player_types_matrix, NUM_PLAYERS, contributions_matrix)
 
       round_avg_contribution[current_round] = np.sum(contributions_matrix) / (NUM_MEMBERSHIP*NUM_PLAYERS)
 
@@ -383,12 +440,14 @@ def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool,
       metrics_of_interest_array_current = update_metrics_of_interest(metrics_of_interest_array_current, contributions_matrix, groups_matrix)
       to_merge = [metrics_of_interest_array_all_rounds, metrics_of_interest_array_current]
       metrics_of_interest_array_all_rounds = pd.concat(to_merge)
+      DELTA = update_delta(DELTA, NUM_PLAYERS)
 
   else:
     for current_round in range(1, NUM_ROUNDS):
       scaled_public_good_matrix = calculuate_scaled_public_good(contributions_matrix, groups_matrix, NUM_PLAYERS, R)
       payoff_matrix = calculate_payoff_split(contributions_matrix, groups_matrix, ENDOWMENT, scaled_public_good_matrix)
-      contributions_matrix = update_contributions_split(player_types_matrix, contributions_matrix, payoff_matrix, groups_matrix, ENDOWMENT, NUM_MEMBERSHIP, DELTA)
+      contributions_matrix = update_contributions_stochastic_split(player_types_matrix, contributions_matrix, payoff_matrix, groups_matrix, ENDOWMENT, NUM_MEMBERSHIP, DELTA, TREMBLE)
+      contributions_matrix = round_effect(current_round, player_types_matrix, NUM_PLAYERS, contributions_matrix)
             
       round_avg_contribution[current_round] = np.sum(contributions_matrix) / (NUM_MEMBERSHIP*NUM_PLAYERS)
 
@@ -396,5 +455,6 @@ def simulate_game(NUM_MEMBERSHIP: int, ENDOWMENT: int, SHARED: bool,
       metrics_of_interest_array_current = update_metrics_of_interest(metrics_of_interest_array_current, contributions_matrix, groups_matrix)
       to_merge = [metrics_of_interest_array_all_rounds, metrics_of_interest_array_current]
       metrics_of_interest_array_all_rounds = pd.concat(to_merge)
+      DELTA = update_delta(DELTA, NUM_PLAYERS)
 
   return round_avg_contribution, metrics_of_interest_array_all_rounds

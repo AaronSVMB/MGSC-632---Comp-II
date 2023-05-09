@@ -1,5 +1,11 @@
-from src.public_goods_utils import *
+"""
+    Tested the adding stochasticity functions, functions with tremble here. This file is no longer necessary
+    and all of its contents can be moved to archive.py. Will leave here for the time being.
+"""
+
 import math
+from src.public_goods_utils import *
+
 #==========================================================================================
 # New Parameter
 #==========================================================================================
